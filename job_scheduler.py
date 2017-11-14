@@ -20,10 +20,10 @@ from copy import copy, deepcopy
 JOBS = 100
 
 # How far out the deadline of a job is set
-DEADLINE = 10000
+DEADLINE = 200
 
 # Maximum amount of work needed to complete a job
-SIZE_MAX = 10
+SIZE_MAX = 50
 
 # Minimum amount of work needed to complete a job
 SIZE_MIN = 1
@@ -35,10 +35,10 @@ START_MAX = 100
 START_MIN = 0
 
 # Seed number for seeded operations
-SEED = 1
+SEED = 3
 
 # The spawn rate is 1 / JOB_SPAWN_RATE
-JOB_SPAWN_RATE = 100
+JOB_SPAWN_RATE = 20
 
 # How many "clock cycles" the random operation runs for.
 RUNTIME = 1000
@@ -158,13 +158,17 @@ def fifo_scheduler_seeded(jobs=None, edf=False):
     speed = stop - start
 
     # Print the results
-    output = 'Seeded] Runtime: {} sec. -- "Clock Cycles": {} -- Jobs Complete: {}'.format(round(speed, 8), clock_cycle,
-                                                                                          jobs_complete)
-    if edf:
-        output = '[EDF ' + output
+    if DEBUG:
+        output = 'Seeded] Runtime: {} sec. -- "Clock Cycles": {} -- Jobs Complete: {}'.format(round(speed, 8), clock_cycle,
+                                                                                              jobs_complete)
+        if edf:
+            output = '[EDF ' + output
+        else:
+            output = '[FIFO ' + output
+        print(output)
+        return 'Debugging'
     else:
-        output = '[FIFO ' + output
-    print(output)
+        return (round(speed, 8), clock_cycle, jobs_complete)
 
 
 # Implementing the Shortest Time Remaining algorithm
@@ -238,9 +242,14 @@ def str_scheduler_seeded(jobs=None):
     speed = stop - start
 
     # Print the output
-    print(
-        '[STR Seeded] Runtime: {} sec. -- "Clock Cycles": {} -- Jobs Complete: {}'.format(round(speed, 8), clock_cycle,
-                                                                                           jobs_complete))
+    if DEBUG:
+        print(
+            '[STR Seeded] Runtime: {} sec. -- "Clock Cycles": {} -- Jobs Complete: {}'.format(round(speed, 8),
+                                                                                              clock_cycle,
+                                                                                              jobs_complete))
+        return 'Debugging'
+    else:
+        return (round(speed, 8), clock_cycle, jobs_complete)
 
 # This function implements all three scheduling algorithms based on the flags passed to it
 # This function generates jobs randomly on the fly, so it will always produce different results
@@ -315,28 +324,49 @@ def fifo_scheduler_random(edf=False, str=False):
 
     # Calculate the real time and print the output
     speed = stop - start
-    output = 'Random] Runtime: {} sec. -- "Clock Cycles": {} -- Jobs Complete: {}'.format(round(speed, 8), clock_cycle,
-                                                                                   jobs_complete)
-    if str:
-        output = '[STR ' + output
-    elif edf:
-        output = '[EDF ' + output
+    if DEBUG:
+        output = 'Random] Runtime: {} sec. -- "Clock Cycles": {} -- Jobs Complete: {}'.format(round(speed, 8), clock_cycle,
+                                                                                       jobs_complete)
+        if str:
+            output = '[STR ' + output
+        elif edf:
+            output = '[EDF ' + output
+        else:
+            output = '[FIFO ' + output
+        print(output)
+        return 'Debugging'
     else:
-        output = '[FIFO ' + output
-    print(output)
+        return (round(speed, 8), clock_cycle, jobs_complete)
 
 
 # Running the different algorithms in the main function
 if __name__ == '__main__':
-    seeded = False
+    seeded = True
+    loops = 10
     if seeded:
-        jobs = create_jobs_seeded()
-        # Deep copy ensures we are passing the jobs by value and not reference
-        # (we want all the algorithms to use the exact same job list)
-        fifo_scheduler_seeded(deepcopy(jobs))
-        fifo_scheduler_seeded(deepcopy(jobs), edf=True)
-        str_scheduler_seeded(deepcopy(jobs))
+        output_file = open('job_scheduler_seeded.csv', 'w')
+        output_file.write('Jobs:, {}\n'.format(JOBS))
+        output_file.write('Size:, {}, {}\n'.format(SIZE_MIN, SIZE_MAX))
+        output_file.write('Deadline:, {}\n'.format(DEADLINE))
+        output_file.write(',FIFO, ED, STR\n')
+        for i in range(0, loops):
+            SEED = i
+            jobs = create_jobs_seeded()
+            # Deep copy ensures we are passing the jobs by value and not reference
+            # (we want all the algorithms to use the exact same job list)
+            fifo_output = fifo_scheduler_seeded(deepcopy(jobs))
+            edf_output = fifo_scheduler_seeded(deepcopy(jobs), edf=True)
+            str_output = str_scheduler_seeded(deepcopy(jobs))
+            output_file.write('{}, {}, {}, {}\n'.format(SEED, fifo_output[2], edf_output[2], str_output[2]))
     else:
-        fifo_scheduler_random()
-        fifo_scheduler_random(edf=True)
-        fifo_scheduler_random(str=True)
+        output_file = open('job_scheduler_random.csv', 'w')
+        output_file.write('Runtime:, {}\n'.format(RUNTIME))
+        output_file.write('Size:, {}, {}\n'.format(SIZE_MIN, SIZE_MAX))
+        output_file.write('Deadline:, {}\n'.format(DEADLINE))
+        output_file.write('Spawn:, {}\n'.format(JOB_SPAWN_RATE))
+        output_file.write(',FIFO, ED, STR\n')
+        for i in range(0, loops):
+            fifo_output = fifo_scheduler_random()
+            edf_output = fifo_scheduler_random(edf=True)
+            str_output = fifo_scheduler_random(str=True)
+            output_file.write('{}, {}, {}, {}\n'.format(i, fifo_output[2], edf_output[2], str_output[2]))
