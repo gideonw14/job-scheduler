@@ -93,7 +93,7 @@ def create_job(name, start=None, fixed_deadline=False):
 def create_jobs_random():
     job_list = list()
     for i in range(0, JOBS):
-        job = create_job(i, fixed_deadline=True)
+        job = create_job(i, fixed_deadline=False)
         job_list.append(job)
         # print(jobs[i])
     return job_list
@@ -264,8 +264,8 @@ def fifo_scheduler_random(edf=False, str=False):
     # While we are still in runtime
     while(clock_cycle < RUNTIME):
         # Decide if we should spawn a job
-        if random.randint(0, JOB_SPAWN_RATE) == 0:
-            job = create_job(job_number, start=clock_cycle, fixed_deadline=True)
+        if clock_cycle % JOB_SPAWN_RATE == 0:
+            job = create_job(job_number, start=clock_cycle, fixed_deadline=False)
             job_number += 1
             jobs.append(job)
 
@@ -341,17 +341,27 @@ def fifo_scheduler_random(edf=False, str=False):
 
 # Running the different algorithms in the main function
 if __name__ == '__main__':
-    seeded = True
-    loops = 10
+    seeded = int(input('Seeded(1) or Random(0): '))
+    loops = int(input('How many trials? '))
+    filename = input('Name of the file (.csv appended): ')
+    filename = '{}.csv'.format(filename)
     if seeded:
-        output_file = open('job_scheduler_seeded.csv', 'w')
+        # _jobs = int(input('How many jobs: '))
+        # _size = int(input('Biggest job size: '))
+        # _min_size = int(input('Smallest job size: '))
+        # _deadline = int(input('Deadline: '))
+        # JOBS = _jobs
+        # SIZE_MAX = _size
+        # SIZE_MIN = _min_size
+        # DEADLINE = _deadline
+        output_file = open(filename, 'w')
         output_file.write('Jobs:, {}\n'.format(JOBS))
         output_file.write('Size:, {}, {}\n'.format(SIZE_MIN, SIZE_MAX))
         output_file.write('Deadline:, {}\n'.format(DEADLINE))
-        output_file.write(',FIFO, ED, STR\n')
+        output_file.write(',FIFO, EDF, STR\n')
         for i in range(0, loops):
             SEED = i
-            jobs = create_jobs_seeded()
+            jobs = (Job(7,0,100,1), Job(5,5,100,2), Job(40,7,50,3), Job(12,11,100,4), Job(20,30,200,5)) #create_jobs_seeded()
             # Deep copy ensures we are passing the jobs by value and not reference
             # (we want all the algorithms to use the exact same job list)
             fifo_output = fifo_scheduler_seeded(deepcopy(jobs))
@@ -359,12 +369,22 @@ if __name__ == '__main__':
             str_output = str_scheduler_seeded(deepcopy(jobs))
             output_file.write('{}, {}, {}, {}\n'.format(SEED, fifo_output[2], edf_output[2], str_output[2]))
     else:
-        output_file = open('job_scheduler_random.csv', 'w')
+        _runtime = int(input('How many clock cycles: '))
+        _size = int(input('Biggest job size: '))
+        _min_size = int(input('Smallest job size: '))
+        _deadline = int(input('Deadline: '))
+        _spawn = int(input('Spawn rate (percent): '))
+        RUNTIME = _runtime
+        SIZE_MAX = _size
+        SIZE_MIN = _min_size
+        DEADLINE = _deadline
+        JOB_SPAWN_RATE = _spawn
+        output_file = open(filename, 'w')
         output_file.write('Runtime:, {}\n'.format(RUNTIME))
         output_file.write('Size:, {}, {}\n'.format(SIZE_MIN, SIZE_MAX))
         output_file.write('Deadline:, {}\n'.format(DEADLINE))
         output_file.write('Spawn:, {}\n'.format(JOB_SPAWN_RATE))
-        output_file.write(',FIFO, ED, STR\n')
+        output_file.write(',FIFO, EDF, STR\n')
         for i in range(0, loops):
             fifo_output = fifo_scheduler_random()
             edf_output = fifo_scheduler_random(edf=True)
